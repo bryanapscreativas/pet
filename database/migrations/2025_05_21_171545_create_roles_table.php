@@ -11,8 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('pet_treatment', function (Blueprint $table) {
-            $table->date('start_date')->default(now())->change();
+        Schema::create('roles', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->timestamps();
         });
     }
 
@@ -21,8 +23,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('pet_treatment', function (Blueprint $table) {
-            $table->date('start_date')->default(null)->change();
-        });
+        Schema::dropIfExists('roles');
     }
 };

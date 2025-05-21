@@ -13,14 +13,8 @@ return new class extends Migration
     {
         Schema::create('pet_treatment', function (Blueprint $table) {
             $table->id();
-            $table->foreignUlid('pet_id')->constrained()->onDelete('cascade');
+            $table->foreignId('pet_id')->constrained()->onDelete('cascade');
             $table->foreignId('treatment_id')->constrained()->onDelete('cascade');
-            $table->date('start_date');
-            $table->date('end_date')->nullable();
-            $table->string('dosage')->nullable();
-            $table->string('frequency')->nullable();
-            $table->text('notes')->nullable();
-            $table->boolean('is_completed')->default(false);
             $table->timestamps();
             $table->index(['pet_id', 'treatment_id']);
         });

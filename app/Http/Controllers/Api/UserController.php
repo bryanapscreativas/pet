@@ -6,8 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -20,6 +18,11 @@ class UserController extends Controller
      */
     public function show(User $user): JsonResponse
     {
+        $user->load([
+            'pets',
+            'roles',
+        ]);
+
         return response()->json([
             'data' => $user,
         ]);

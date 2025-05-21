@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\Api\PetController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\PublicPetController;
@@ -15,6 +16,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('user/{user}/pets', [UserController::class, 'getPets']);
     Route::post('pets', [PetController::class, 'store']);
     Route::put('pets/{pet}', [PetController::class, 'update']);
+
+    Route::apiResource('roles', RoleController::class)->only(['index', 'show', 'store', 'update']);
 });
 
 // Rutas públicas

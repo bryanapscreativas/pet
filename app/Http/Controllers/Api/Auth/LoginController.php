@@ -27,7 +27,7 @@ class LoginController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $user->load(['pets']),
+            'data' => $user->load(['pets', 'roles']),
             'message' => 'Inicio de sesión exitoso',
         ]);
     }
