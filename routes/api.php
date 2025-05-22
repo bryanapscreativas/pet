@@ -1,11 +1,10 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\Api\NfcController;
 use App\Http\Controllers\Api\PetController;
 use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\Api\PublicPetController;
 use App\Http\Controllers\Api\Auth\LoginController;
 use App\Http\Controllers\Api\Auth\RegisterController;
 
@@ -18,11 +17,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('pets/{pet}', [PetController::class, 'update']);
 
     Route::apiResource('roles', RoleController::class)->only(['index', 'show', 'store', 'update']);
+    Route::post('nfc/assign', [NfcController::class, 'assignNfc']);
 });
 
 // Rutas públicas
-Route::get('pets/{id}', [PublicPetController::class, 'show']);
-Route::post('pets/nfc', [PublicPetController::class, 'findByNfc']);
+Route::get('pets/{id}', [PetController::class, 'show']);
+Route::get('nfc/{ulid}', [NfcController::class, 'findNfc']);
 Route::get('user/{user}/profile_picture', [UserController::class, 'getImage'])->name('profile_picture');
 
 // Rutas de autenticación

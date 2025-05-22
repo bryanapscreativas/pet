@@ -54,6 +54,20 @@ class PetController extends Controller
     }
 
     /**
+     * Obtener los datos de una mascota por su ID (ULID)
+     *
+     * @param string $id
+     * @return JsonResponse
+     */
+    public function show(string $id): JsonResponse
+    {
+        $pet = Pet::with(['diseases', 'treatments', 'user'])
+            ->findOrFail($id);
+
+        return response()->json($pet);
+    }
+
+    /**
      * Sincroniza las condiciones (padecimientos) de la mascota
      *
      * @param StorePetRequest $request
@@ -63,46 +77,25 @@ class PetController extends Controller
     private function syncConditions(StorePetRequest $request, Pet $pet): void
     {
         if (! $request->has('conditions') || ! is_array($request->conditions)) {
-            // Si no hay condiciones nuevas, sincronizar con las existentes
+            // Si no hay condiciones nuevas, eliminar todas las existentes
             $pet->diseases()->sync([]);
             return;
         }
 
-        $conditions = collect($request->conditions)
+        // Obtener solo los nombres de las condiciones
+        $conditionNames = collect($request->conditions)
             ->filter(fn(array $condition) => ! empty($condition['name']))
-            ->mapWithKeys(fn(array $condition) => [
-                $condition['name'] => [
-                    'treatment' => $condition['treatment'] ?? null,
-                    'diagnosis_date' => $condition['diagnosis_date'] ?? now(),
-                    'notes' => $condition['notes'] ?? null,
-                ],
-            ]);
+            ->pluck('name')
+            ->unique()
+            ->toArray();
 
-        // Obtener IDs de enfermedades existentes
-        $existingDiseases = $pet->diseases->pluck('id')->toArray();
-        
-        // Crear nuevas enfermedades y obtener todas las IDs necesarias
-        $diseaseIds = collect($conditions)->map(function($data, $name) {
-            $disease = Disease::firstOrCreate(['name' => $name]);
-            return $disease->id;
-        })->toArray();
+        // Obtener o crear las enfermedades y sincronizarlas
+        $diseases = collect($conditionNames)->map(function($name) {
+            return Disease::firstOrCreate(['name' => $name]);
+        });
 
-        // Sincronizar las enfermedades con los datos pivote
-        $pet->diseases()->sync($diseaseIds, false);
-
-        // Actualizar los datos pivote para cada enfermedad
-        foreach ($conditions as $name => $data) {
-            $disease = Disease::firstWhere('name', $name);
-            if ($disease) {
-                $pet->diseases()->updateExistingPivot($disease->id, $data);
-            }
-        }
-
-        // Eliminar enfermedades que ya no están en la lista
-        $diseasesToRemove = array_diff($existingDiseases, $diseaseIds);
-        if (!empty($diseasesToRemove)) {
-            $pet->diseases()->detach($diseasesToRemove);
-        }
+        // Sincronizar las enfermedades con la mascota
+        $pet->diseases()->sync($diseases->pluck('id')->toArray());
     }
 
     /**
@@ -115,60 +108,25 @@ class PetController extends Controller
     private function syncTreatments(StorePetRequest $request, Pet $pet): void
     {
         if (! $request->has('treatments') || ! is_array($request->treatments)) {
-            // Si no hay tratamientos nuevos, sincronizar con los existentes
+            // Si no hay tratamientos nuevos, eliminar todos los existentes
             $pet->treatments()->sync([]);
             return;
         }
 
-        $treatments = collect($request->treatments)
+        // Obtener solo los nombres de los tratamientos
+        $treatmentNames = collect($request->treatments)
             ->filter(fn(array $treatment) => ! empty($treatment['name']))
-            ->mapWithKeys(fn(array $treatmentData) => [
-                $treatmentData['name'] => [
-                    'start_date' => $treatmentData['start_date'] ?? now(),
-                    'end_date' => $treatmentData['end_date'] ?? null,
-                    'dosage' => $treatmentData['dosage'] ?? null,
-                    'frequency' => $treatmentData['frequency'] ?? null,
-                    'notes' => $treatmentData['notes'] ?? null,
-                    'is_completed' => $treatmentData['is_completed'] ?? false,
-                ],
-            ]);
+            ->pluck('name')
+            ->unique()
+            ->toArray();
 
-        // Obtener IDs de tratamientos existentes
-        $existingTreatments = $pet->treatments->pluck('id')->toArray();
-        
-        // Crear nuevos tratamientos y obtener todas las IDs necesarias
-        $treatmentIds = collect($treatments)->map(function($data, $name) {
-            $treatment = Treatment::firstOrCreate([
-                'name' => $name,
-            ]);
-            return $treatment->id;
-        })->toArray();
+        // Obtener o crear los tratamientos y sincronizarlos
+        $treatments = collect($treatmentNames)->map(function($name) {
+            return Treatment::firstOrCreate(['name' => $name]);
+        });
 
-        // Sincronizar los tratamientos con los datos pivote
-        $pet->treatments()->syncWithoutDetaching($treatmentIds);
-
-        // Actualizar los datos pivote para cada tratamiento
-        foreach ($treatmentIds as $treatmentId) {
-            $pet->treatments()->updateExistingPivot($treatmentId, [
-                'start_date' => now(),
-                'is_completed' => false,
-                'notes' => null,
-            ]);
-        }
-
-        // Actualizar los datos pivote para cada tratamiento
-        foreach ($treatments as $name => $data) {
-            $treatment = Treatment::firstWhere('name', $name);
-            if ($treatment) {
-                $pet->treatments()->updateExistingPivot($treatment->id, $data);
-            }
-        }
-
-        // Eliminar tratamientos que ya no están en la lista
-        $treatmentsToRemove = array_diff($existingTreatments, $treatmentIds);
-        if (!empty($treatmentsToRemove)) {
-            $pet->treatments()->detach($treatmentsToRemove);
-        }
+        // Sincronizar los tratamientos con la mascota
+        $pet->treatments()->sync($treatments->pluck('id')->toArray());
     }
 
     /**

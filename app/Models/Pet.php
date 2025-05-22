@@ -49,7 +49,6 @@ class Pet extends Model
     public function diseases()
     {
         return $this->belongsToMany(Disease::class)
-            ->withPivot(['diagnosis_date', 'treatment', 'notes'])
             ->withTimestamps();
     }
 
@@ -60,7 +59,6 @@ class Pet extends Model
     public function treatments()
     {
         return $this->belongsToMany(Treatment::class)
-            ->withPivot(['start_date', 'end_date', 'dosage', 'frequency', 'notes', 'is_completed'])
             ->withTimestamps();
     }
 }
